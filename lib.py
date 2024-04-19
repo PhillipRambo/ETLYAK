@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 import numpy as np
+import numpy as np
+
 
 @dataclass
 class TsParams:
@@ -41,9 +43,6 @@ class BassReflex:
 
 
     
-
-import numpy as np
-
 """
     % Bass Reflex Calculations as a function
     function [f, LT, LD, LP] = PerformBassReflexCalculations(f, s, UG, RE, SD, BL, rho, c, VB, MMS, CMS, RMS, pREF, R)
@@ -100,7 +99,4 @@ def simulate_bass_reflex(bassreflex: BassReflex, frequency_range=(10, 1000)):
     lt = 20 * np.log10(np.abs(pt) / pREF) # Total sound pressure level
     ld = 20 * np.log10(np.abs(pf) / pREF) # Driver sound pressure level
     lp = 20 * np.log10(np.abs(pp) / pREF) # Port sound pressure level
-
-    
-
     return f, lt, ld, lp

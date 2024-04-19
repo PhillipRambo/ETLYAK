@@ -3,31 +3,55 @@ from tkinter import ttk
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from lib import *
+from simulation_logic import *
 
 cabinet = Cabinet(width=20, height=30, depth=20, volume=0.02, port_size=10, port_N=1, port_length=10)
 speaker_unit = speaker_from_blue_planet_parameters(impedance=4, xmax=8, fres=45, bl=8.7, Le=1.18, Re=3.5, Qms=4.37, Qes=0.49, Qts=0.44, Vas=6.8, Sd=127, Mms=38.64, Cms=0.3, Rms=2.57)
 basreflex = BassReflex(speaker_unit, cabinet)
 
 
-def plot_speaker_response(VB):
+def plot_speaker_response():
+    # No need for VB as a parameter if you're accessing it directly from the basreflex object
     frequency, total_sound_pressure, driver_pressure_level, port_pressure_level = simulate_bass_reflex(basreflex)
     ax.clear()
-    ax.plot(frequency, total_sound_pressure, '-r', linewidth=2)
-    ax.plot(frequency, driver_pressure_level, '-g', linewidth=2)
-    ax.plot(frequency, port_pressure_level, '-b', linewidth=2)
+    ax.plot(frequency, total_sound_pressure, '-r', linewidth=2, label='Total SPL')
+    ax.plot(frequency, driver_pressure_level, '-g', linewidth=2, label='Driver SPL')
+    ax.plot(frequency, port_pressure_level, '-b', linewidth=2, label='Port SPL')
+    ax.legend(loc='best')
     ax.set_xlabel('Frequency (Hz)')
     ax.set_ylabel('Amplitude (dB SPL)')
-    ax.set_title(f'Loudspeaker Simulation (Volume {VB} L)')
-    #print default cabinet values
-    ax.text(0.5, 0.5, f'Width: {cabinet.width} cm\nHeight: {cabinet.height} cm\nDepth: {cabinet.depth} cm\nVolume: {cabinet.volume} L\nPort Size: {cabinet.port_size} cm^2\nPort N: {cabinet.port_N}\nPort Length: {cabinet.port_length} cm', horizontalalignment='center', verticalalignment='center', transform=ax.transAxes, fontsize=10)
+    ax.set_title(f'Loudspeaker Simulation (Volume {basreflex.cabinet.volume} L)')
     ax.grid(True)
     canvas.draw()
 
+def on_volume_entry_change(*args):
+    volume_str = volume_entry.get()
+    if volume_str:
+        try:
+            VB = float(volume_str)
+            volume_slider.set(VB)
+            basreflex.cabinet.volume = VB
+            plot_speaker_response()
+        except ValueError:
+            print("Please enter a valid number for volume.")
+
+
 def on_slider_move(event):
-    VB = volume_entry.get()
-    if VB.strip():  # Check if the entry is not empty
-        VB = int(VB)
-        plot_speaker_response(VB)
+    VB = volume_slider.get()
+    basreflex.cabinet.volume = VB
+    volume_entry.delete
+    volume_entry.insert(0, str(VB))
+    plot_speaker_response()
+
+
+
+def on_slider_move(event):
+    VB = volume_slider.get()
+    basreflex.cabinet.volume = VB
+    volume_entry.delete
+    volume_entry.insert(0, str(VB))
+    plot_speaker_response()
+    
 
 def submit():
     # Get the values from entry boxes
@@ -40,8 +64,9 @@ def submit():
     port_length_str = port_length_entry.get()
 
     # Validate the input values
-    if width_str.strip() and height_str.strip() and depth_str.strip() and volume_str.strip() and port_size_str.strip() and port_N_str.strip() and port_length_str.strip():
-        # Convert input values to float
+    if all([width_str.strip(), height_str.strip(), depth_str.strip(), volume_str.strip(), port_size_str.strip(), port_N_str.strip(), port_length_str.strip()]):
+        global cabinet, basreflex
+        # Convert input values to appropriate types
         width = float(width_str)
         height = float(height_str)
         depth = float(depth_str)
@@ -50,14 +75,22 @@ def submit():
         port_N = int(port_N_str)
         port_length = float(port_length_str)
 
-        # Create the cabinet object
-        cabinet = Cabinet(width=width, height=height, depth=depth, volume=volume, port_size=port_size, port_N=port_N, port_length=port_length)
+        # Update the cabinet object
+        cabinet.width = width
+        cabinet.height = height
+        cabinet.depth = depth
+        cabinet.volume = volume
+        cabinet.port_size = port_size
+        cabinet.port_N = port_N
+        cabinet.port_length = port_length
 
-        print(cabinet)
-        update_speaker()
+        # Recreate the BassReflex object
+        basreflex = BassReflex(speaker_unit, cabinet)
+
+        # Update and redraw the plot
+        plot_speaker_response()
     else:
-        # Display error message in red
-        #display the error message on the gui
+        # Display error message if not all fields are filled
         error_message = tk.Label(input_frame, text="Error: Please enter all values", font=('Helvetica', 12, 'bold'), background='#f0f0f0', fg='red')
         error_message.grid(row=8, column=0, columnspan=2, padx=5, pady=5, sticky='ew')
         error_message.after(3000, error_message.destroy)
@@ -100,6 +133,15 @@ input_frame = tk.Frame(window, bg='#f0f0f0')
 input_frame.pack(side=tk.RIGHT, fill=tk.Y, padx=20, pady=20)
 
 # Add input labels and entry boxes
+
+volume_var = tk.StringVar()
+volume_var.trace('w', lambda *args: on_volume_entry_change())
+volume_entry = ttk.Entry(input_frame, textvariable=volume_var)
+# tjeck if volume is changed
+volume_entry.grid(row=0, column=1, padx=5, pady=5, sticky='ew')
+
+
+
 volume_label = ttk.Label(input_frame, text="Volume (L):", font=('Helvetica', 12, 'bold'), background='#f0f0f0')
 volume_label.grid(row=0, column=0, padx=5, pady=5, sticky='w')
 volume_entry = ttk.Entry(input_frame)
@@ -152,6 +194,8 @@ volume_slider.pack(side=tk.BOTTOM, padx=10, pady=10)
 # Create canvas for speaker illustration
 speaker_canvas = tk.Canvas(slider_frame, width=150, height=200, bg='#f0f0f0', bd=0, highlightthickness=0)
 speaker_canvas.pack()
+
+
 
 window.mainloop()
 
