@@ -12,6 +12,12 @@ class TsParams:
     Qms: float  # Mechanical Q, dimensionless
     Re: float  # Voice Coil DC Resistance in ohms
     rms: float  # Mechanical Losses in Ns/m
+    mmp: float # Slavens bevægelige masse. det samme som diaphram mass *2. 
+    cms: float # Suspension compliance af slaven.
+    rms: float # Mekaniske tab af slaven.
+    sd: float # Slavens areal.
+
+
 
 
 @dataclass
@@ -38,6 +44,11 @@ class Cabinet:
 
 @dataclass
 class BassReflex:
+    unit: SpeakerUnit
+    cabinet: Cabinet
+
+@dataclass
+class PassiveSlave:
     unit: SpeakerUnit
     cabinet: Cabinet
 
@@ -77,7 +88,7 @@ def simulate_bass_reflex(bassreflex: BassReflex, frequency_range=(10, 1000)):
     s = 1j * 2 * np.pi * f
 
     sd = bassreflex.unit.surface_area
-   
+
     ts = bassreflex.unit.params
 
     fa = (ts.Qes * ts.Qms) / (ts.Re * sd) # Acoustical force
@@ -100,3 +111,49 @@ def simulate_bass_reflex(bassreflex: BassReflex, frequency_range=(10, 1000)):
     ld = 20 * np.log10(np.abs(pf) / pREF) # Driver sound pressure level
     lp = 20 * np.log10(np.abs(pp) / pREF) # Port sound pressure level
     return f, lt, ld, lp
+
+
+
+def passiveslave_simulation(passive_slave: PassiveSlave, frequency_range=(10, 1000)):
+    rho = 1.18  # Air mass density (kg/m^3)
+    c = 345     # Speed of sound (m/s)
+    pREF = 20e-6  # Reference sound pressure (Pa)
+
+    f = np.arange(frequency_range[0], frequency_range[1] + 1)
+    s = 1j * 2 * np.pi * f
+
+    ts = passive_slave.unit.params
+    sd = passive_slave.unit.surface_area
+
+    fa = (ts.Qes * ts.Qms) / (ts.Re * sd) 
+    cab = passive_slave.cabinet.volume / (rho * c**2)  # Box compliance for the slave
+    rae = ts.bl**2 / (ts.Re * sd**2)  # Electrical DC resistance equivalent
+
+    mmp = ts.mmp
+    cmp = ts.cms
+    rmp = ts.rms
+    sp = ts.sd
+
+    mas = ts.mms / (sp**2)
+    cas = ts.cms * sp**2
+    ras = ts.rms / sp**2
+    map = mmp / sp**2
+    cap = cmp * sp**2
+    rap = rmp / sp**2
+
+    qF = fa / (rae + s * mas + 1 / (s * cas) + ras + 1 / (s * cab + 1 / (s * map + 1 / (s * cap) + rap)))
+    qP = -qF * (1 / (s * cab)) / (1 / (s * cab) + s * map + 1 / (s * cap) + rap)
+
+    pT = rho * s * (qF + qP) / (2 * np.pi * ts.Re)
+    pF = rho * s * qF / (2 * np.pi * ts.Re)
+    pP = rho * s * qP / (2 * np.pi * ts.Re)
+
+    lt = 20 * np.log10(np.abs(pT) / pREF)
+    lf = 20 * np.log10(np.abs(pF) / pREF)
+    lp = 20 * np.log10(np.abs(pP) / pREF)
+
+    return f, lt, lf, lp
+
+
+
+
