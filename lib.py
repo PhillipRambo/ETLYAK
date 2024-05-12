@@ -17,8 +17,6 @@ class TsParams:
     sd: float # Slavens areal.
 
 
-
-
 @dataclass
 class SpeakerUnit:
     params: TsParams

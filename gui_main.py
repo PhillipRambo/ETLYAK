@@ -126,7 +126,7 @@ input_frame.pack(side=tk.RIGHT, fill=tk.Y, padx=20, pady=20)
 # Add input labels and entry boxes
 
 volume_var = tk.StringVar()
-volume_var.trace('w', lambda *args: on_volume_entry_change())
+volume_var.trace_add('write', on_volume_entry_change)
 volume_entry = ttk.Entry(input_frame, textvariable=volume_var)
 # tjeck if volume is changed
 volume_entry.grid(row=0, column=1, padx=5, pady=5, sticky='ew')
