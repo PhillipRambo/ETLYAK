@@ -39,16 +39,7 @@ def on_volume_entry_change(*args):
 def on_slider_move(event):
     VB = volume_slider.get()
     basreflex.cabinet.volume = VB
-    volume_entry.delete
-    volume_entry.insert(0, str(VB))
-    plot_speaker_response()
-
-
-
-def on_slider_move(event):
-    VB = volume_slider.get()
-    basreflex.cabinet.volume = VB
-    volume_entry.delete
+    volume_entry.delete(0, tk.END)
     volume_entry.insert(0, str(VB))
     plot_speaker_response()
     
