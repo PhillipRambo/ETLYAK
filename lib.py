@@ -12,7 +12,6 @@ class TsParams:
     Qms: float  # Mechanical Q, dimensionless
     Re: float  # Voice Coil DC Resistance in ohms
     rms: float  # Mechanical Losses in Ns/m
-    mmp: float # Slavens bevægelige masse. det samme som diaphram mass *2. 
     cms: float # Suspension compliance af slaven.
     rms: float # Mekaniske tab af slaven.
     sd: float # Slavens areal.
@@ -27,7 +26,7 @@ class SpeakerUnit:
 
 
 def speaker_from_blue_planet_parameters(impedance: float, xmax: float, fres: float, bl: float, Le: float, Re: float, Qms: float, Qes: float, Qts: float, Vas:float, Sd: float, Mms: float, Cms: float, Rms: float):
-    ts_params_local = TsParams(bl, Mms, Cms, Qes, Qms, Re, Rms)
+    ts_params_local = TsParams(bl, Mms, Cms, Qes, Qms, Re, Rms, Sd)
     surface_area = Sd
     return SpeakerUnit(ts_params_local, surface_area)
         
