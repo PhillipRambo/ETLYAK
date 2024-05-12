@@ -1,7 +1,12 @@
 from dataclasses import dataclass
 import numpy as np
 import numpy as np
+from enum import Enum
 
+class SpeakerType(Enum):
+    BASS_REFLEX = 1
+    PASSIVE_SLAVE = 2
+    BANDPASS_6TH_ORDER = 3
 
 @dataclass
 class TsParams:
