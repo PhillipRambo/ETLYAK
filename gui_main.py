@@ -179,7 +179,7 @@ slider_frame.pack(side=tk.RIGHT, fill=tk.BOTH, padx=20, pady=20)
 volume_slider_label = tk.Label(slider_frame, text="Volume (L):", bg='#f0f0f0', fg='black', font=('Helvetica', 12, 'bold'))
 volume_slider_label.pack(side=tk.TOP, padx=10, pady=10)
 
-volume_slider = tk.Scale(slider_frame, from_=0, to=100, orient=tk.HORIZONTAL, length=300, bg='#f0f0f0', fg='blue', highlightbackground='#f0f0f0', troughcolor='#c0c0c0', command=on_slider_move)
+volume_slider = tk.Scale(slider_frame, from_=1, to=100, orient=tk.HORIZONTAL, length=300, bg='#f0f0f0', fg='blue', highlightbackground='#f0f0f0', troughcolor='#c0c0c0', command=on_slider_move)
 volume_slider.pack(side=tk.BOTTOM, padx=10, pady=10)
 
 # Create canvas for speaker illustration
