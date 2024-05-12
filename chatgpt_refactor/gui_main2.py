@@ -2,9 +2,11 @@ import tkinter as tk
 from tkinter import ttk
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from lib2 import unit_from_blue_planet_parameters, SpeakerType, BassReflex, Cabinet, Port, PassiveUnit, PassiveSlave, SimulationType, Bandpass6thOrder
+from lib2 import unit_from_blue_planet_parameters, SpeakerType, BassReflex, Cabinet, Port, PassiveUnit, PassiveSlave, SimulationType, Bandpass6thOrder, simulate_6thorderbandpass
 
 UNIT = unit_from_blue_planet_parameters(impedance=4, xmax=8, fres=45, bl=8.7, Le=1.18, Re=3.5, Qms=4.37, Qes=0.49, Qts=0.44, Vas=6.8, Sd=127e-3, Mms=38.64e-3, Cms=0.3e-3, Rms=2.57)
+
+speaker = BassReflex(UNIT, Cabinet(8), Port(2, 10))
 
 def setup_gui():
     # Main window setup for input controls
@@ -18,11 +20,9 @@ def setup_gui():
     plot_window.title("Loudspeaker Simulation Plot")
     plot_window.geometry("800x600")
 
-    speaker = BassReflex(UNIT, Cabinet(8), Port(2, 10))
-
     fig, ax, canvas = setup_plot_window(plot_window)
 
-    setup_input_controls(window, speaker, ax, canvas)
+    setup_input_controls(window, ax, canvas)
 
     window.mainloop()
 
@@ -34,7 +34,7 @@ def setup_plot_window(window):
     canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
     return fig, ax, canvas
 
-def setup_input_controls(window, speaker: SpeakerType, ax, canvas):
+def setup_input_controls(window, ax, canvas):
     frame = ttk.Frame(window, padding="3 3 12 12")
     frame.pack(fill=tk.BOTH, expand=True)
 
@@ -48,13 +48,14 @@ def setup_input_controls(window, speaker: SpeakerType, ax, canvas):
     params_frame = ttk.Frame(frame)
     params_frame.pack(fill=tk.BOTH, expand=True, pady=20)
 
-    submit_button = ttk.Button(frame, text="Submit", command=lambda: submit(params_frame, speaker, ax, canvas))
+    submit_button = ttk.Button(frame, text="Submit", command=lambda: submit(params_frame, ax, canvas))
     submit_button.pack()
 
-    dropdown.bind("<<ComboboxSelected>>", lambda event: update_inputs(params_frame, selected_type.get(), speaker))
-    update_inputs(params_frame, selected_type.get(), speaker)
+    dropdown.bind("<<ComboboxSelected>>", lambda event: update_inputs(params_frame, selected_type.get()))
+    update_inputs(params_frame, selected_type.get())
 
-def update_inputs(frame, sim_type, speaker: SpeakerType):
+def update_inputs(frame, sim_type):
+    global speaker
     if str(speaker) != sim_type:
         if sim_type == 'Bass Reflex':
             speaker = BassReflex(UNIT)
@@ -73,50 +74,63 @@ def update_inputs(frame, sim_type, speaker: SpeakerType):
     }
 
     labels = input_fields[sim_type]
-    entries = {label: ttk.Entry(frame) for label in labels}
+    sliders = {label: ttk.Scale(frame, from_=0, to=100, orient='horizontal') for label in labels}
 
-    for label, entry in entries.items():
+
+    for label, slider in sliders.items():
         ttk.Label(frame, text=label).pack()
-        entry.pack()
+        slider.pack()
 
-    frame.entries = entries  # Storing entries in the frame for access during submit
+    frame.sliders = sliders  # Storing sliders in the frame for access during submit
 
-    # Pre-fill with default values
+    # Pre-set sliders to default values
     if sim_type == 'Bass Reflex':
-        entries[labels[0]].insert(0, str(speaker.cabinet.volume))
-        entries[labels[1]].insert(0, str(speaker.port.radius))
-        entries[labels[2]].insert(0, str(speaker.port.length))
+        sliders[labels[0]].set(speaker.cabinet.volume)
+        sliders[labels[1]].set(speaker.port.radius)
+        sliders[labels[2]].set(speaker.port.length)
     elif sim_type == 'Passive Slave':
-        entries[labels[0]].insert(0, str(speaker.cabinet.volume))
-        entries[labels[1]].insert(0, str(speaker.slave.Cas))
-        entries[labels[2]].insert(0, str(speaker.slave.Mas))
-        entries[labels[3]].insert(0, str(speaker.slave.Ras))
+        sliders[labels[0]].set(speaker.cabinet.volume)
+        sliders[labels[1]].set(speaker.slave.Cas)
+        sliders[labels[2]].set(speaker.slave.Mas)
+        sliders[labels[3]].set(speaker.slave.Ras)
     elif sim_type == '6th Order Bandpass':
-        entries[labels[0]].insert(0, str(speaker.front_cabinet.volume))
-        entries[labels[1]].insert(0, str(speaker.back_cabinet.volume))
-        entries[labels[2]].insert(0, str(speaker.front_port.radius))
-        entries[labels[3]].insert(0, str(speaker.front_port.length))
-        entries[labels[4]].insert(0, str(speaker.back_ports.radius))
-        entries[labels[5]].insert(0, str(speaker.back_ports.length))
+        sliders[labels[0]].set(speaker.front_cabinet.volume)
+        sliders[labels[1]].set(speaker.back_cabinet.volume)
+        sliders[labels[2]].set(speaker.front_port.radius)
+        sliders[labels[3]].set(speaker.front_port.length)
+        sliders[labels[4]].set(speaker.back_ports.radius)
+        sliders[labels[5]].set(speaker.back_ports.length)
 
 
-def submit(frame, speaker: SpeakerType, ax, canvas):
-    entries = frame.entries
+def submit(frame, ax, canvas):
+    global speaker
+    # entries = frame.entries
+    sliders = frame.sliders
     try:
-        values = {label: float(entry.get()) for label, entry in entries.items()}
+        # values = {label: float(entry.get()) for label, entry in entries.items()}
+        values = {label: float(slider.get()) for label, slider in sliders.items()}
         print(f"Submitted values: {values}")  # Debugging output
+        if str(speaker) == '6th Order Bandpass':
+            # Update Values
+            speaker.front_cabinet.volume = values["Cabinet volume front chamber (L):"]
+            speaker.back_cabinet.volume = values["Cabinet volume rear chamber (L):"]
+            speaker.front_port.radius = values["Port radius front chamber (cm):"]
+            speaker.front_port.length = values["Port length front chamber (cm):"]
+            speaker.back_ports.radius = values["Port radius rear chamber (cm):"]
+            speaker.back_ports.length = values["Port length rear chamber (cm):"]
 
-        # Update the basreflex object based on new inputs
-        # For demonstration, this just assumes all values are correctly ordered and given
-        # You will need to adjust according to your basreflex and cabinet attributes
-
-        # Here you should call your simulation function with updated parameters
-        # Example: frequency, total_sound_pressure, driver_pressure_level, port_pressure_level = simulate_bass_reflex(basreflex)
-        # For now, just a dummy plot update:
-        ax.clear()
-        ax.plot([1, 2, 3], [1, 4, 9])  # Example plot, replace with your actual plotting code
-        ax.set_title('Updated Plot')
-        canvas.draw()
+            # Plot
+            f, splT, splF, splR = simulate_6thorderbandpass(speaker)
+            ax.clear()
+            ax.semilogx(f, splF)
+            ax.semilogx(f, splR)
+            ax.semilogx(f, splT)
+            ax.legend(['Front Chamber', 'Rear Chamber', 'Total'])
+            ax.set_xlim([f[0], f[-1]])
+            ax.set_title('6th Order Bandpass Simulation')
+            ax.set_xlabel('Frequency (Hz)')
+            ax.set_ylabel('Sound Pressure Level (dB)')
+            canvas.draw()
 
     except ValueError as e:
         print("Error: Please enter valid numeric values.", e)

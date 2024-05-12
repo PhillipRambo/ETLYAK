@@ -78,15 +78,10 @@ class BassReflex(SpeakerType):
     cabinet: Cabinet
     port: Port
 
-    def __init__(self, unit: SpeakerUnit):
+    def __init__(self, unit: SpeakerUnit, cabinet: Cabinet = Cabinet(8), port: Port = Port(2, 10)):
         self.unit = unit
         self.cabinet = Cabinet(8)
         self.port = Port(2, 10)
-
-    def __init__(self, unit: SpeakerUnit, cabinet: Cabinet, port: Port):
-        self.unit = unit
-        self.cabinet = cabinet
-        self.port = port
 
     def __str__(self) -> str:
         return "Bass Reflex"
@@ -208,11 +203,11 @@ def simulate_6thorderbandpass(bandpass: Bandpass6thOrder, frequency_range=(10, 1
     f = np.arange(frequency_range[0], frequency_range[1] + 1)
     s = 1j * 2 * np.pi * f
 
+    ts = bandpass.unit.params
+
     Ug = 1 # Amplitude of the input signal
     Ug_eq = (ts.Bl)/(ts.Re*ts.Sd) * Ug # Equivalent input signal for acoustical circuit
-    r = 1 # Distance from the speaker to the listener¨
-
-    ts = bandpass.unit.params
+    r = 1 # Distance from the speaker to the listener
 
     #* Driver acoustical impedance
     Zrae = ts.Bl**2 / (ts.Re * ts.Sd**2) # Electrical DC resistance equivalent
@@ -221,8 +216,9 @@ def simulate_6thorderbandpass(bandpass: Bandpass6thOrder, frequency_range=(10, 1
     Zras = ts.Rms / ts.Sd**2 # Mechanical impedance of the driver
 
     #* Front acoustical load impedance
-    Vb = bandpass.front_cabinet.volume * 1e-3 # Volume of the front chamber in m^3
-    Caf = Vb / (rho * c**2) # Compliance of the front chamber
+    Vbf = bandpass.front_cabinet.volume * 1e-3 # Volume of the front chamber in m^3
+    print(Vbf)
+    Caf = Vbf / (rho * c**2) # Compliance of the front chamber
     Zcaf = 1 / (s * Caf) # Acoustical impedance of the front chamber
     Spf = bandpass.front_port.area # Area of the front port
     Lpf = bandpass.front_port.length # Length of the front port
@@ -232,7 +228,8 @@ def simulate_6thorderbandpass(bandpass: Bandpass6thOrder, frequency_range=(10, 1
     Zaf = (Zcaf * Zmaf) / (Zcaf + Zmaf) # Total acoustical impedance of the front chamber
 
     #* Rear acoustical load impedance
-    Car = bandpass.back_cabinet.volume / (rho * c**2) # Compliance of the rear chamber
+    Vbr = bandpass.back_cabinet.volume * 1e-3 # Volume of the rear chamber in m^3
+    Car = Vbr / (rho * c**2) # Compliance of the rear chamber
     Zcar = 1 / (s * Car) # Acoustical impedance of the rear chamber
     Spr = bandpass.back_ports.area # Area of the rear ports
     Lpr = bandpass.back_ports.length # Length of the rear ports
@@ -253,8 +250,8 @@ def simulate_6thorderbandpass(bandpass: Bandpass6thOrder, frequency_range=(10, 1
 
     p_total = pf + pr
 
-    splF = 20 * np.log10(pf / pREF)
-    splR = 20 * np.log10(pr / pREF)
-    splT = 20 * np.log10(p_total / pREF)
+    splF = 20 * np.log10(np.abs(pf) / pREF)
+    splR = 20 * np.log10(np.abs(pr) / pREF)
+    splT = 20 * np.log10(np.abs(p_total) / pREF)
 
     return f, splT, splF, splR
