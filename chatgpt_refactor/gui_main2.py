@@ -93,6 +93,7 @@ def update_inputs(frame, sim_type, ax, canvas):
         sliders[labels[2]].set(speaker.slave.Mas)
         sliders[labels[3]].set(speaker.slave.Ras)
     elif sim_type == '6th Order Bandpass':
+        print("I am called")
         sliders[labels[0]].set(speaker.front_cabinet.volume)
         sliders[labels[1]].set(speaker.back_cabinet.volume)
         sliders[labels[2]].set(speaker.front_port.radius)
@@ -105,7 +106,9 @@ def submit(frame, ax, canvas):
     sliders = frame.sliders
     try:
         values = {label: float(slider.get()) for label, slider in sliders.items()}
-        # print(f"Submitted values: {values}")  # Debugging output
+        if not all(values.values()):
+            return
+        print(f"Submitted values: {values}")  # Debugging output
         if str(speaker) == '6th Order Bandpass':
             # Update Values
             speaker.front_cabinet.volume = values["Cabinet volume front chamber (L):"]
@@ -121,6 +124,7 @@ def submit(frame, ax, canvas):
             # ax.semilogx(f, splF)
             # ax.semilogx(f, splR)
             ax.semilogx(f, splT)
+            ax.grid(which='both', axis='both')
             ax.legend(['Front Chamber', 'Rear Chamber', 'Total'])
             ax.set_xlim([f[0], f[-1]])
             ax.set_title('6th Order Bandpass Simulation')

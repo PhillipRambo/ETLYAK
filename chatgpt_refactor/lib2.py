@@ -197,23 +197,24 @@ def simulate_passiveslave(passive_slave: PassiveSlave, frequency_range=(10, 1000
 
 def simulate_6thorderbandpass(bandpass: Bandpass6thOrder, frequency_range=(10, 1000)):
     rho = 1.18  # Air mass density (kg/m^3)
-    c = 345  # Speed of sound (m/s)
+    c = 343  # Speed of sound (m/s)
     pREF = 20e-6  # Reference sound pressure (Pa)
 
     f = np.arange(frequency_range[0], frequency_range[1] + 1)
     s = 1j * 2 * np.pi * f
 
     ts = bandpass.unit.params
+    print(ts)
 
     Ug = 1 # Amplitude of the input signal
     Ug_eq = (ts.Bl)/(ts.Re*ts.Sd) * Ug # Equivalent input signal for acoustical circuit
     r = 1 # Distance from the speaker to the listener
 
     #* Driver acoustical impedance
-    Zrae = ts.Bl**2 / (ts.Re * ts.Sd**2) # Electrical DC resistance equivalent
-    Zmas = s * ts.Mms / ts.Sd**2 # Mechanical impedance of the driver
+    Zrae = (ts.Bl**2) / (ts.Re * ts.Sd**2) # Electrical DC resistance equivalent
+    Zmas = s * (ts.Mms) / (ts.Sd**2) # Mechanical impedance of the driver
     Zcas = 1 / (s * ts.Cms * ts.Sd**2) # Compliance impedance of the driver
-    Zras = ts.Rms / ts.Sd**2 # Mechanical impedance of the driver
+    Zras = (ts.Rms) / (ts.Sd**2) # Mechanical impedance of the driver
 
     #* Front acoustical load impedance
     Vbf = bandpass.front_cabinet.volume * 1e-3 # Volume of the front chamber in m^3
@@ -241,7 +242,7 @@ def simulate_6thorderbandpass(bandpass: Bandpass6thOrder, frequency_range=(10, 1
     q = (Ug_eq)/(Zrae + Zmas + Zcas + Zras + Zaf + Zab)
 
     #* Sound pressure level
-    p_factor = rho/(2 * np.pi * r)
+    p_factor = s*rho/(2 * np.pi * r)
     # current divider between Zcaf and Zmaf - only current in Zmaf is converted to sound pressure
     pf = p_factor * q * Zaf / (Zaf + Zmaf)
     # current divider between Zcar and Zmar - only current in Zmar is converted to sound pressure
