@@ -110,7 +110,7 @@ def update_speaker():
 # Create main window
 window = tk.Tk()
 window.title("Loudspeaker Simulation")
-window.geometry("800x600")
+window.geometry("1200x600")
 window.configure(bg='#f0f0f0')
 
 # Create matplotlib figure and canvas
