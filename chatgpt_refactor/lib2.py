@@ -244,9 +244,9 @@ def simulate_6thorderbandpass(bandpass: Bandpass6thOrder, frequency_range=(10, 1
     #* Sound pressure level
     p_factor = s*rho/(2 * np.pi * r)
     # current divider between Zcaf and Zmaf - only current in Zmaf is converted to sound pressure
-    pf = p_factor * q * Zaf / (Zaf + Zmaf)
+    pf = p_factor * q * Zcaf / (Zcaf + Zmaf)
     # current divider between Zcar and Zmar - only current in Zmar is converted to sound pressure
-    pr = p_factor * q * Zab / (Zab + Zmar)
+    pr = p_factor * (-q) * Zcar / (Zcar + Zmar)
 
     p_total = pf + pr
 
