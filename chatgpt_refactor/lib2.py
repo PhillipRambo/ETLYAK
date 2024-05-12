@@ -217,11 +217,10 @@ def simulate_6thorderbandpass(bandpass: Bandpass6thOrder, frequency_range=(10, 1
 
     #* Front acoustical load impedance
     Vbf = bandpass.front_cabinet.volume * 1e-3 # Volume of the front chamber in m^3
-    print(Vbf)
     Caf = Vbf / (rho * c**2) # Compliance of the front chamber
     Zcaf = 1 / (s * Caf) # Acoustical impedance of the front chamber
-    Spf = bandpass.front_port.area # Area of the front port
-    Lpf = bandpass.front_port.length # Length of the front port
+    Spf = np.pi * (bandpass.front_port.radius*1e-2)**2 # Area of the front port
+    Lpf = bandpass.front_port.length*1e-2 # Length of the front port
     Mapf = rho/Spf * (Lpf + 1.5 * np.sqrt(Spf / np.pi)) # Added mass of air due to the front port
     Zmaf = s * Mapf # Mechanical impedance of the front port
 
@@ -231,8 +230,8 @@ def simulate_6thorderbandpass(bandpass: Bandpass6thOrder, frequency_range=(10, 1
     Vbr = bandpass.back_cabinet.volume * 1e-3 # Volume of the rear chamber in m^3
     Car = Vbr / (rho * c**2) # Compliance of the rear chamber
     Zcar = 1 / (s * Car) # Acoustical impedance of the rear chamber
-    Spr = bandpass.back_ports.area # Area of the rear ports
-    Lpr = bandpass.back_ports.length # Length of the rear ports
+    Spr = np.pi * (bandpass.back_ports.radius*1e-2)**2 # Area of the rear ports
+    Lpr = bandpass.back_ports.length*1e-2 # Length of the rear ports
     Mapr = rho/Spr * (Lpr + 1.5 * np.sqrt(Spr / np.pi)) # Added mass of air due to the rear ports
     Zmar = s * Mapr # Mechanical impedance of the rear ports
 

@@ -51,10 +51,10 @@ def setup_input_controls(window, ax, canvas):
     submit_button = ttk.Button(frame, text="Submit", command=lambda: submit(params_frame, ax, canvas))
     submit_button.pack()
 
-    dropdown.bind("<<ComboboxSelected>>", lambda event: update_inputs(params_frame, selected_type.get()))
-    update_inputs(params_frame, selected_type.get())
+    dropdown.bind("<<ComboboxSelected>>", lambda event: update_inputs(params_frame, selected_type.get(), ax, canvas))
+    update_inputs(params_frame, selected_type.get(), ax, canvas)
 
-def update_inputs(frame, sim_type):
+def update_inputs(frame, sim_type, ax, canvas):
     global speaker
     if str(speaker) != sim_type:
         if sim_type == 'Bass Reflex':
@@ -74,8 +74,7 @@ def update_inputs(frame, sim_type):
     }
 
     labels = input_fields[sim_type]
-    sliders = {label: ttk.Scale(frame, from_=0, to=100, orient='horizontal') for label in labels}
-
+    sliders = {label: ttk.Scale(frame, from_=1, to=100, orient='horizontal', command=lambda x=None, f=frame, a=ax, c=canvas: submit(f, a, c)) for label in labels}
 
     for label, slider in sliders.items():
         ttk.Label(frame, text=label).pack()
@@ -101,15 +100,12 @@ def update_inputs(frame, sim_type):
         sliders[labels[4]].set(speaker.back_ports.radius)
         sliders[labels[5]].set(speaker.back_ports.length)
 
-
 def submit(frame, ax, canvas):
     global speaker
-    # entries = frame.entries
     sliders = frame.sliders
     try:
-        # values = {label: float(entry.get()) for label, entry in entries.items()}
         values = {label: float(slider.get()) for label, slider in sliders.items()}
-        print(f"Submitted values: {values}")  # Debugging output
+        # print(f"Submitted values: {values}")  # Debugging output
         if str(speaker) == '6th Order Bandpass':
             # Update Values
             speaker.front_cabinet.volume = values["Cabinet volume front chamber (L):"]
@@ -122,8 +118,8 @@ def submit(frame, ax, canvas):
             # Plot
             f, splT, splF, splR = simulate_6thorderbandpass(speaker)
             ax.clear()
-            ax.semilogx(f, splF)
-            ax.semilogx(f, splR)
+            # ax.semilogx(f, splF)
+            # ax.semilogx(f, splR)
             ax.semilogx(f, splT)
             ax.legend(['Front Chamber', 'Rear Chamber', 'Total'])
             ax.set_xlim([f[0], f[-1]])
