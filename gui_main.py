@@ -14,9 +14,9 @@ def plot_speaker_response():
     # No need for VB as a parameter if you're accessing it directly from the basreflex object
     frequency, total_sound_pressure, driver_pressure_level, port_pressure_level = simulate_bass_reflex(basreflex)
     ax.clear()
-    ax.plot(frequency, total_sound_pressure, '-r', linewidth=2, label='Total SPL')
-    ax.plot(frequency, driver_pressure_level, '-g', linewidth=2, label='Driver SPL')
-    ax.plot(frequency, port_pressure_level, '-b', linewidth=2, label='Port SPL')
+    ax.semilogx(frequency, total_sound_pressure, '-r', linewidth=2, label='Total SPL')
+    ax.semilogx(frequency, driver_pressure_level, '-g', linewidth=2, label='Driver SPL')
+    ax.semilogx(frequency, port_pressure_level, '-b', linewidth=2, label='Port SPL')
     ax.legend(loc='best')
     ax.set_xlabel('Frequency (Hz)')
     ax.set_ylabel('Amplitude (dB SPL)')
