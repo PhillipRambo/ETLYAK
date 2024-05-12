@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from lib2 import unit_from_blue_planet_parameters, SpeakerType, BassReflex, Cabinet, Port, PassiveUnit, PassiveSlave, SimulationType, Bandpass6thOrder, simulate_6thorderbandpass
+from lib2 import unit_from_blue_planet_parameters, SpeakerType, BassReflex, Cabinet, Port, PassiveUnit, PassiveSlave, SimulationType, Bandpass6thOrder, simulate_6thorderbandpass, simulate_passive_slave, simulate_bass_reflex
 
 UNIT = unit_from_blue_planet_parameters(impedance=4, xmax=8, fres=45, bl=8.7, Le=1.18, Re=3.5, Qms=4.37, Qes=0.49, Qts=0.44, Vas=6.8, Sd=127e-3, Mms=38.64e-3, Cms=0.3e-3, Rms=2.57)
 
@@ -109,7 +109,49 @@ def submit(frame, ax, canvas):
         if not all(values.values()):
             return
         print(f"Submitted values: {values}")  # Debugging output
-        if str(speaker) == '6th Order Bandpass':
+
+        if str(speaker) == 'Bass Reflex':
+            # Update Values
+            speaker.cabinet.volume = values["Cabinet Volume (L):"]
+            speaker.port.radius = values["Port Radius (cm):"]
+            speaker.port.length = values["Port length (cm):"]
+
+            # Plot
+            f, splT, splF, splR = simulate_bass_reflex(speaker)
+            ax.clear()
+            ax.semilogx(f, splF)
+            ax.semilogx(f, splR)
+            ax.semilogx(f, splT)
+            ax.grid(which='both', axis='both')
+            ax.legend(['Front Chamber', 'Rear Chamber', 'Total'])
+            ax.set_xlim([f[0], f[-1]])
+            ax.set_title('Bass Reflex Simulation')
+            ax.set_xlabel('Frequency (Hz)')
+            ax.set_ylabel('Sound Pressure Level (dB)')
+            canvas.draw()
+
+        elif str(speaker) == 'Passive Slave':
+            # Update Values
+            speaker.cabinet.volume = values["Cabinet Volume (L):"]
+            speaker.slave.Cas = values["Passive Radiator Compliance (mm/N):"]
+            speaker.slave.Mas = values["Passive Radiator Mass (g):"]
+            speaker.slave.Ras = values["Passive Radiator Resistance (Ohm):"]
+
+            # Plot
+            f, splT, splF, splR = simulate_passive_slave(speaker)
+            ax.clear()
+            ax.semilogx(f, splF)
+            ax.semilogx(f, splR)
+            ax.semilogx(f, splT)
+            ax.grid(which='both', axis='both')
+            ax.legend(['Front Chamber', 'Rear Chamber', 'Total'])
+            ax.set_xlim([f[0], f[-1]])
+            ax.set_title('Passive Slave Simulation')
+            ax.set_xlabel('Frequency (Hz)')
+            ax.set_ylabel('Sound Pressure Level (dB)')
+            canvas.draw()
+
+        elif str(speaker) == '6th Order Bandpass':
             # Update Values
             speaker.front_cabinet.volume = values["Cabinet volume front chamber (L):"]
             speaker.back_cabinet.volume = values["Cabinet volume rear chamber (L):"]
@@ -121,8 +163,8 @@ def submit(frame, ax, canvas):
             # Plot
             f, splT, splF, splR = simulate_6thorderbandpass(speaker)
             ax.clear()
-            # ax.semilogx(f, splF)
-            # ax.semilogx(f, splR)
+            ax.semilogx(f, splF)
+            ax.semilogx(f, splR)
             ax.semilogx(f, splT)
             ax.grid(which='both', axis='both')
             ax.legend(['Front Chamber', 'Rear Chamber', 'Total'])
