@@ -4,7 +4,7 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from lib2 import unit_from_blue_planet_parameters, SpeakerType, BassReflex, Cabinet, Port, PassiveUnit, PassiveSlave, SimulationType, Bandpass6thOrder, simulate_6thorderbandpass, simulate_passive_slave, simulate_bass_reflex, simulate_our_speaker, simulate_bass_reflex_not_ours
 
-UNIT = unit_from_blue_planet_parameters(impedance=4, xmax=8, fres=45, bl=8.7, Le=1.18, Re=3.5, Qms=4.37, Qes=0.49, Qts=0.44, Vas=6.8, Sd=127e-3, Mms=38.64e-3, Cms=0.3e-3, Rms=2.57)
+UNIT = unit_from_blue_planet_parameters(impedance=4, xmax=8, fres=45, bl=8.7, Le=1.18e-3, Re=3.5, Qms=4.37, Qes=0.49, Qts=0.44, Vas=6.8, Sd=127e-4, Mms=38.64e-3, Cms=0.3e-3, Rms=2.57)
 
 speaker = BassReflex(UNIT, Cabinet(8), Port(2, 10))
 

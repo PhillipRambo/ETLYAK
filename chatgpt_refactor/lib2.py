@@ -169,6 +169,8 @@ def simulate_bass_reflex(bassreflex: BassReflex, frequency_range=(10, 1000)):
     splR = 20 * np.log10(np.abs(pr) / pREF)
     splT = 20 * np.log10(np.abs(p_total) / pREF)
 
+    print(f"Rae={(ts.Bl**2) / (ts.Re * ts.Sd**2)}, Mas={(ts.Mms) / (ts.Sd**2)}, Cas={1 / (ts.Cms * ts.Sd**2)}, Ras={(ts.Rms) / (ts.Sd**2)}")
+
     return f, splT, splF, splR
 
 def simulate_bass_reflex_not_ours(bassreflex: BassReflex, frequency_range=(10, 1000)):
