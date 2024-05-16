@@ -44,11 +44,11 @@ class Cabinet:
     depth: float
     volume: float
 
-    def __init__(self, width, height, depth):
-        self.width = width
-        self.height = height
-        self.depth = depth
-        self.volume = width * height * depth
+    # def __init__(self, width, height, depth):
+    #     self.width = width
+    #     self.height = height
+    #     self.depth = depth
+    #     self.volume = width * height * depth
     
     def __init__(self, volume):
         self.volume = volume # Volume in liters
@@ -170,6 +170,39 @@ def simulate_bass_reflex(bassreflex: BassReflex, frequency_range=(10, 1000)):
     splT = 20 * np.log10(np.abs(p_total) / pREF)
 
     return f, splT, splF, splR
+
+def simulate_bass_reflex_not_ours(bassreflex: BassReflex, frequency_range=(10, 1000)):
+    rho = 1.18  # Air mass density (kg/m^3)
+    c = 345  # Speed of sound (m/s)
+    pREF = 20e-6  # Reference sound pressure (Pa)
+
+    f = np.arange(frequency_range[0], frequency_range[1] + 1)
+    s = 1j * 2 * np.pi * f
+
+    # sd = bassreflex.unit.surface_area
+
+    ts = bassreflex.unit.params
+
+    fa = (ts.Qes * ts.Qms) / (ts.Re * ts.Sd) # Acoustical force
+    cab = bassreflex.cabinet.volume / (rho * c**2) # Box compliance
+    rae = ts.bl**2 / (ts.Re * ts.Sd**2) # Electrical DC resistance equivalent
+    mas = ts.mms / (ts.Sd**2) # Driver moving mass
+    cas = ts.cms * ts.Sd**2 # Driver compliance
+    ras = ts.rms / ts.Sd**2 # Driver mechanical loss
+    rp = bassreflex.cabinet.port_size # Port radius (m)
+    sp = np.pi * rp**2 # Port area (m2)
+    lx = bassreflex.cabinet.port_length # Port length (m)
+    mmp = (rho * sp) * (lx + 1.5 * np.sqrt(sp / np.pi)) # Added mass of air due to the port
+    map = mmp / sp**2 # Effective moving mass of the port
+    qf = fa / (rae + s * mas + 1 / (s * cas) + ras + 1 / (s * (cab + 1 / (s * map))))
+    qp = -qf * (1 / (s * cab)) / (1 / (s * cab) + s * map) # Port volume velocity
+    pt = rho * s * (qf + qp) / (2 * np.pi * ts.Re) # Total volume velocity
+    pf = rho * s * qf / (2 * np.pi * ts.Re) # Driver volume velocity
+    pp = rho * s * qp / (2 * np.pi * ts.Re) # Port volume velocity
+    lt = 20 * np.log10(np.abs(pt) / pREF) # Total sound pressure level
+    ld = 20 * np.log10(np.abs(pf) / pREF) # Driver sound pressure level
+    lp = 20 * np.log10(np.abs(pp) / pREF) # Port sound pressure level
+    return f, lt, ld, lp
 
 
 def simulate_passive_slave(passive_slave: PassiveSlave, frequency_range=(10, 1000)):
