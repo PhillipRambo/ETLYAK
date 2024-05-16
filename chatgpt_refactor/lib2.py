@@ -111,10 +111,10 @@ class Bandpass6thOrder(SpeakerType):
 
     def __init__(self, unit: SpeakerUnit):
         self.unit = unit
-        self.front_cabinet = Cabinet(1)
-        self.back_cabinet = Cabinet(30)
-        self.front_port = Port(3, 10)
-        self.back_ports = Port(3, 17)
+        self.front_cabinet = Cabinet(6.5)
+        self.back_cabinet = Cabinet(50)
+        self.front_port = Port(3, 29.72)
+        self.back_ports = Port(3, 53)
     
     def __str__(self) -> str:
         return "6th Order Bandpass"
@@ -159,7 +159,6 @@ def simulate_bass_reflex(bassreflex: BassReflex, frequency_range=(10, 1000)):
 
     #* Sound pressure level
     p_factor = s*rho/(2 * np.pi * r)
-    # current divider between Zcaf and Zmaf - only current in Zmaf is converted to sound pressure
     pf = p_factor * q
     # current divider between Zcar and Zmar - only current in Zmar is converted to sound pressure
     pr = p_factor * (-q) * Zcar / (Zcar + Zmar)
@@ -264,6 +263,73 @@ def simulate_6thorderbandpass(bandpass: Bandpass6thOrder, frequency_range=(10, 1
     Mapr = rho/Spr * (Lpr + 1.5 * np.sqrt(Spr / np.pi)) # Added mass of air due to the rear ports
     Zmar = s * Mapr # Mechanical impedance of the rear ports
 
+    Zab = (Zcar * Zmar) / (Zcar + Zmar) # Total acoustical impedance of the back chamber
+
+    #* Air flow through circuit
+    q = (Ug_eq)/(Zrae + Zmas + Zcas + Zras + Zaf + Zab)
+
+    #* Sound pressure level
+    p_factor = s*rho/(2 * np.pi * r)
+    # current divider between Zcaf and Zmaf - only current in Zmaf is converted to sound pressure
+    pf = p_factor * q * Zcaf / (Zcaf + Zmaf)
+    # current divider between Zcar and Zmar - only current in Zmar is converted to sound pressure
+    pr = p_factor * (-q) * Zcar / (Zcar + Zmar)
+
+    p_total = pf + pr
+
+    splF = 20 * np.log10(np.abs(pf) / pREF)
+    splR = 20 * np.log10(np.abs(pr) / pREF)
+    splT = 20 * np.log10(np.abs(p_total) / pREF)
+
+    return f, splT, splF, splR
+
+
+def simulate_our_speaker(bandpass: Bandpass6thOrder, frequency_range=(10, 1000)):
+    rho = 1.18  # Air mass density (kg/m^3)
+    c = 343  # Speed of sound (m/s)
+    pREF = 20e-6  # Reference sound pressure (Pa)
+
+    f = np.arange(frequency_range[0], frequency_range[1] + 1)
+    s = 1j * 2 * np.pi * f
+
+    ts = bandpass.unit.params
+    ts.Re = ts.Re/2
+    ts.Sd = 2*ts.Sd
+    ts.Mms = 2*ts.Mms
+    ts.Cms = ts.Cms/2
+    ts.Rms = 2*ts.Rms
+    print(ts)
+
+    Ug = 1 # Amplitude of the input signal
+    Ug_eq = (ts.Bl)/(ts.Re*ts.Sd) * Ug # Equivalent input signal for acoustical circuit
+    r = 1 # Distance from the speaker to the listener
+
+    #* Driver acoustical impedance
+    Zrae = (ts.Bl**2) / (ts.Re * ts.Sd**2) # Electrical DC resistance equivalent
+    Zmas = s * (ts.Mms) / (ts.Sd**2) # Mechanical impedance of the driver
+    Zcas = 1 / (s * ts.Cms * ts.Sd**2) # Compliance impedance of the driver
+    Zras = (ts.Rms) / (ts.Sd**2) # Mechanical impedance of the driver
+    
+    #* Front acoustical load impedance
+    Vbf = bandpass.front_cabinet.volume * 1e-3 # Volume of the front chamber in m^3
+    Caf = Vbf / (rho * c**2) # Compliance of the front chamber
+    Zcaf = 1 / (s * Caf) # Acoustical impedance of the front chamber
+    Spf = np.pi * (bandpass.front_port.radius*1e-2)**2 # Area of the front port
+    Lpf = bandpass.front_port.length*1e-2 # Length of the front port
+    Mapf = rho/Spf * (Lpf + 1.5 * np.sqrt(Spf / np.pi)) # Added mass of air due to the front port
+    Zmaf = s * Mapf # Mechanical impedance of the front port
+
+    Zaf = (Zcaf * Zmaf) / (Zcaf + Zmaf) # Total acoustical impedance of the front chamber
+
+    #* Rear acoustical load impedance
+    Vbr = bandpass.back_cabinet.volume * 1e-3 # Volume of the rear chamber in m^3
+    Car = Vbr / (rho * c**2) # Compliance of the rear chamber
+    Zcar = 1 / (s * Car) # Acoustical impedance of the rear chamber
+    Spr = np.pi * (bandpass.back_ports.radius*1e-2)**2 # Area of the rear ports
+    Lpr = bandpass.back_ports.length*1e-2 # Length of the rear ports
+    Mapr = rho/Spr * (Lpr + 1.5 * np.sqrt(Spr / np.pi)) # Added mass of air due to the rear ports
+    Zmar = 1/2 * s * Mapr # Mechanical impedance of the rear ports
+    
     Zab = (Zcar * Zmar) / (Zcar + Zmar) # Total acoustical impedance of the back chamber
 
     #* Air flow through circuit

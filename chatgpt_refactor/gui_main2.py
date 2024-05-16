@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from lib2 import unit_from_blue_planet_parameters, SpeakerType, BassReflex, Cabinet, Port, PassiveUnit, PassiveSlave, SimulationType, Bandpass6thOrder, simulate_6thorderbandpass, simulate_passive_slave, simulate_bass_reflex
+from lib2 import unit_from_blue_planet_parameters, SpeakerType, BassReflex, Cabinet, Port, PassiveUnit, PassiveSlave, SimulationType, Bandpass6thOrder, simulate_6thorderbandpass, simulate_passive_slave, simulate_bass_reflex, simulate_our_speaker
 
 UNIT = unit_from_blue_planet_parameters(impedance=4, xmax=8, fres=45, bl=8.7, Le=1.18, Re=3.5, Qms=4.37, Qes=0.49, Qts=0.44, Vas=6.8, Sd=127e-3, Mms=38.64e-3, Cms=0.3e-3, Rms=2.57)
 
@@ -38,7 +38,7 @@ def setup_input_controls(window, ax, canvas):
     frame = ttk.Frame(window, padding="3 3 12 12")
     frame.pack(fill=tk.BOTH, expand=True)
 
-    simulation_types = ['Bass Reflex', 'Passive Slave', '6th Order Bandpass']
+    simulation_types = ['Bass Reflex', 'Passive Slave', '6th Order Bandpass', 'Our speaker']
     selected_type = tk.StringVar(value=simulation_types[0])
 
     ttk.Label(frame, text="Select Simulation Type:").pack()
@@ -63,6 +63,8 @@ def update_inputs(frame, sim_type, ax, canvas):
             speaker = PassiveSlave(UNIT)
         elif sim_type == '6th Order Bandpass':
             speaker = Bandpass6thOrder(UNIT)
+        elif sim_type == 'Our speaker':
+            speaker = Bandpass6thOrder(UNIT)
 
     for widget in frame.winfo_children():
         widget.destroy()
@@ -70,7 +72,8 @@ def update_inputs(frame, sim_type, ax, canvas):
     input_fields = {
         'Bass Reflex': ["Cabinet Volume (L):", "Port Radius (cm):", "Port length (cm):"],
         'Passive Slave': ["Cabinet Volume (L):", "Passive Radiator Compliance (mm/N):", "Passive Radiator Mass (g):", "Passive Radiator Resistance (Ohm):"],
-        '6th Order Bandpass': ["Cabinet volume front chamber (L):", "Cabinet volume rear chamber (L):", "Port radius front chamber (cm):", "Port length front chamber (cm):", "Port radius rear chamber (cm):", "Port length rear chamber (cm):"]
+        '6th Order Bandpass': ["Cabinet volume front chamber (L):", "Cabinet volume rear chamber (L):", "Port radius front chamber (cm):", "Port length front chamber (cm):", "Port radius rear chamber (cm):", "Port length rear chamber (cm):"],
+        'Our speaker': ["Cabinet volume front chamber (L):", "Cabinet volume rear chamber (L):", "Port radius front chamber (cm):", "Port length front chamber (cm):", "Port radius rear chamber (cm):", "Port length rear chamber (cm):"]
     }
 
     labels = input_fields[sim_type]
@@ -92,7 +95,7 @@ def update_inputs(frame, sim_type, ax, canvas):
         sliders[labels[1]].set(speaker.slave.Cas)
         sliders[labels[2]].set(speaker.slave.Mas)
         sliders[labels[3]].set(speaker.slave.Ras)
-    elif sim_type == '6th Order Bandpass':
+    elif sim_type == '6th Order Bandpass' or sim_type == 'Our speaker':
         print("I am called")
         sliders[labels[0]].set(speaker.front_cabinet.volume)
         sliders[labels[1]].set(speaker.back_cabinet.volume)
@@ -162,6 +165,29 @@ def submit(frame, ax, canvas):
 
             # Plot
             f, splT, splF, splR = simulate_6thorderbandpass(speaker)
+            ax.clear()
+            ax.semilogx(f, splF)
+            ax.semilogx(f, splR)
+            ax.semilogx(f, splT)
+            ax.grid(which='both', axis='both')
+            ax.legend(['Front Chamber', 'Rear Chamber', 'Total'])
+            ax.set_xlim([f[0], f[-1]])
+            ax.set_title('6th Order Bandpass Simulation')
+            ax.set_xlabel('Frequency (Hz)')
+            ax.set_ylabel('Sound Pressure Level (dB)')
+            canvas.draw()
+
+        elif str(speaker) == 'Our speaker':
+            # Update Values
+            speaker.front_cabinet.volume = values["Cabinet volume front chamber (L):"]
+            speaker.back_cabinet.volume = values["Cabinet volume rear chamber (L):"]
+            speaker.front_port.radius = values["Port radius front chamber (cm):"]
+            speaker.front_port.length = values["Port length front chamber (cm):"]
+            speaker.back_ports.radius = values["Port radius rear chamber (cm):"]
+            speaker.back_ports.length = values["Port length rear chamber (cm):"]
+
+            # Plot
+            f, splT, splF, splR = simulate_our_speaker(speaker)
             ax.clear()
             ax.semilogx(f, splF)
             ax.semilogx(f, splR)

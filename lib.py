@@ -144,7 +144,8 @@ def passiveslave_simulation(passive_slave: PassiveSlave, frequency_range=(10, 10
     rap = rmp / sp**2
 
     qF = fa / (rae + s * mas + 1 / (s * cas) + ras + 1 / (s * cab + 1 / (s * map + 1 / (s * cap) + rap)))
-    qP = -qF * (1 / (s * cab)) / (1 / (s * cab) + s * map + 1 / (s * cap) + rap)
+
+    qP = -qF * (1 / (s * cab)) / (1 / (s * cab) + s * map + 1 / (s * cap) + rap)  
 
     pT = rho * s * (qF + qP) / (2 * np.pi * ts.Re)
     pF = rho * s * qF / (2 * np.pi * ts.Re)
@@ -155,6 +156,38 @@ def passiveslave_simulation(passive_slave: PassiveSlave, frequency_range=(10, 10
     lp = 20 * np.log10(np.abs(pP) / pREF)
 
     return f, lt, lf, lp
+
+
+
+def passiveslave_simulation(passive_slave: PassiveSlave, frequency_range=(10, 1000)):
+    ts = passive_slave.unit.params
+    sd = passive_slave.unit.surface_area
+
+    
+    f = np.arange(frequency_range[0], frequency_range[1] + 1)
+    s = 1j * 2 * np.pi * f
+
+    mmp = ts.mmp
+    cmp = ts.cms
+    rmp = ts.rms
+
+    transferfunction = (cmp*sd*s)/(mmp*s**2 + cmp + rmp*cmp*s + 1)
+
+    #plotting the transfer function
+
+    plt.plot(f, 20*np.log10(np.abs(Hx)))
+    plt.xscale('log')
+    plt.xlabel('Frequency [Hz]')
+    plt.ylabel('Magnitude [dB]')
+    plt.title('Transfer function')
+    plt.grid()
+    plt.show()
+
+
+    return transferfunction
+
+
+passiveslave_simulation(PassiveSlave)
 
 
 
