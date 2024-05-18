@@ -1,0 +1,31 @@
+* C:\Users\mariu\Documents\GitHub\ETLYAK\matlab_model_and_measurements\sim_simplified.asc
+V1 v_in 0 1 AC {Bl*Ug/(Re*Sd)}
+R1 N001 v_in {Rae}
+L3 N001 N002 {Mas}
+C2 N003 N002 {Cas}
+R2 slaved_pf N003 {Ras}
+L4 p_f 0 {rho/(2*pi) * 1/Pref}
+F2 0 p_f i_L_f 1
+C4 N007 0 {Cabb}
+L5 N007 N008 {Mapb}
+L10 p_b 0 {rho/(2*pi) * 1/Pref}
+F3 0 p_b i_L_b 1
+V§i_L_b 0 N008
+C6 slaved_pf N007 {Cabf2}
+V§i_L_f slaved_pf N004
+L12 0 N005 {Mms}
+C7 N006 N005 {Cms}
+R3 0 N006 {Rms}
+L1 N004 N007 {Mapf}
+.ac dec 1000 1e1 1e3
+.param Re=3.5 Le=1.18e-3 Bl=8.7 Mms=38.64e-3 Cms=0.3e-3 Rms=2.57 Sd=127e-4 Pref=2e-5 pi=3.14159265 rho=1.18 c=343
+* .tran 1 startup
+.param Vbb=0.050 Cabb={Vbb/(rho*c*c)}
+.param Lpb=530e-3 apb=30e-3 Spb={pi*apb*apb} Mapb={rho/Spb * (Lpb + 1.5 * sqrt(Spb/pi))}
+.param Lpf=297e-3 apf=30e-3 Spf={pi*apf*apf} Mapf={rho/Spf * (Lpf + 1.5 * sqrt(Spf/pi))}
+.param Vbf2=0.0065 Cabf2={Vbf2/(rho*c*c)}
+.param Ug=1
+.param Rae={(Bl*Bl)/(Re*Sd*Sd)} Mas={Mms/(Sd*Sd)} Ras={Rms/(Sd*Sd)} Cas={Cms*Sd*Sd}
+* .op
+.backanno
+.end

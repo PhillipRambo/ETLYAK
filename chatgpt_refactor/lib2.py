@@ -43,12 +43,6 @@ class Cabinet:
     height: float
     depth: float
     volume: float
-
-    # def __init__(self, width, height, depth):
-    #     self.width = width
-    #     self.height = height
-    #     self.depth = depth
-    #     self.volume = width * height * depth
     
     def __init__(self, volume):
         self.volume = volume # Volume in liters
@@ -71,9 +65,24 @@ class PassiveUnit:
     Cas: float
     Mas: float
     Ras: float
+    Sd: float
 
 @dataclass
 class BassReflex(SpeakerType):
+    unit: SpeakerUnit
+    cabinet: Cabinet
+    port: Port
+
+    def __init__(self, unit: SpeakerUnit, cabinet: Cabinet = Cabinet(8), port: Port = Port(2, 10)):
+        self.unit = unit
+        self.cabinet = Cabinet(8)
+        self.port = Port(2, 10)
+
+    def __str__(self) -> str:
+        return "Bass Reflex"
+    
+@dataclass
+class BassReflexNotOurs(SpeakerType):
     unit: SpeakerUnit
     cabinet: Cabinet
     port: Port
@@ -118,6 +127,52 @@ class Bandpass6thOrder(SpeakerType):
     
     def __str__(self) -> str:
         return "6th Order Bandpass"
+    
+@dataclass
+class Bandpass6thOrderOur(SpeakerType):
+    unit: SpeakerUnit
+    front_cabinet: Cabinet
+    back_cabinet: Cabinet
+    front_port: Port
+    back_ports: Port
+
+    def __init__(self, unit: SpeakerUnit):
+        self.unit = unit
+        self.unit.params.Re = self.unit.params.Re/2
+        self.unit.params.Sd = 2*self.unit.params.Sd
+        self.unit.params.Mms = 2*self.unit.params.Mms
+        self.unit.params.Cms = self.unit.params.Cms/2
+        self.unit.params.Rms = 2*self.unit.params.Rms
+        self.front_cabinet = Cabinet(6.5)
+        self.back_cabinet = Cabinet(50)
+        self.front_port = Port(3, 29.72)
+        self.back_ports = Port(3, 53)
+    
+    def __str__(self) -> str:
+        return "Our speaker"
+    
+@dataclass
+class Bandpass6thOrderPassiveSlave(SpeakerType):
+    unit: SpeakerUnit
+    front_cabinet: Cabinet
+    back_cabinet: Cabinet
+    front_slave: PassiveUnit
+    back_ports: Port
+
+    def __init__(self, unit: SpeakerUnit, slave: PassiveUnit):
+        self.unit = unit
+        self.unit.params.Re = self.unit.params.Re/2
+        self.unit.params.Sd = 2*self.unit.params.Sd
+        self.unit.params.Mms = 2*self.unit.params.Mms
+        self.unit.params.Cms = self.unit.params.Cms/2
+        self.unit.params.Rms = 2*self.unit.params.Rms
+        self.front_slave = slave
+        self.front_cabinet = Cabinet(6.5)
+        self.back_cabinet = Cabinet(50)
+        self.back_ports = Port(3, 53)
+    
+    def __str__(self) -> str:
+        return "Our speaker with passive slave"
 
 
 def simulate_bass_reflex(bassreflex: BassReflex, frequency_range=(10, 1000)):
@@ -173,7 +228,7 @@ def simulate_bass_reflex(bassreflex: BassReflex, frequency_range=(10, 1000)):
 
     return f, splT, splF, splR
 
-def simulate_bass_reflex_not_ours(bassreflex: BassReflex, frequency_range=(10, 1000)):
+def simulate_bass_reflex_not_ours(bassreflex: BassReflexNotOurs, frequency_range=(10, 1000)):
     rho = 1.18  # Air mass density (kg/m^3)
     c = 345  # Speed of sound (m/s)
     pREF = 20e-6  # Reference sound pressure (Pa)
@@ -319,7 +374,7 @@ def simulate_6thorderbandpass(bandpass: Bandpass6thOrder, frequency_range=(10, 1
     return f, splT, splF, splR
 
 
-def simulate_our_speaker(bandpass: Bandpass6thOrder, frequency_range=(10, 1000)):
+def simulate_our_speaker(bandpass: Bandpass6thOrderOur, frequency_range=(10, 1000)):
     rho = 1.18  # Air mass density (kg/m^3)
     c = 343  # Speed of sound (m/s)
     pREF = 20e-6  # Reference sound pressure (Pa)
@@ -328,11 +383,6 @@ def simulate_our_speaker(bandpass: Bandpass6thOrder, frequency_range=(10, 1000))
     s = 1j * 2 * np.pi * f
 
     ts = bandpass.unit.params
-    ts.Re = ts.Re/2
-    ts.Sd = 2*ts.Sd
-    ts.Mms = 2*ts.Mms
-    ts.Cms = ts.Cms/2
-    ts.Rms = 2*ts.Rms
     print(ts)
 
     Ug = 1 # Amplitude of the input signal
@@ -374,6 +424,66 @@ def simulate_our_speaker(bandpass: Bandpass6thOrder, frequency_range=(10, 1000))
     p_factor = s*rho/(2 * np.pi * r)
     # current divider between Zcaf and Zmaf - only current in Zmaf is converted to sound pressure
     pf = p_factor * q * Zcaf / (Zcaf + Zmaf)
+    # current divider between Zcar and Zmar - only current in Zmar is converted to sound pressure
+    pr = p_factor * (-q) * Zcar / (Zcar + Zmar)
+
+    p_total = pf + pr
+
+    splF = 20 * np.log10(np.abs(pf) / pREF)
+    splR = 20 * np.log10(np.abs(pr) / pREF)
+    splT = 20 * np.log10(np.abs(p_total) / pREF)
+
+    return f, splT, splF, splR
+
+
+def passiveradiator_6thorderbandpass_simulation(bandpass: Bandpass6thOrderPassiveSlave, frequency_range=(10, 1000)):
+    rho = 1.18  # Air mass density (kg/m^3)
+    c = 343  # Speed of sound (m/s)
+    pREF = 20e-6  # Reference sound pressure (Pa)
+
+    f = np.arange(frequency_range[0], frequency_range[1] + 1)
+    s = 1j * 2 * np.pi * f
+
+    ts = bandpass.unit.params
+    print(ts)
+
+    Ug = 1 # Amplitude of the input signal
+    Ug_eq = (ts.Bl)/(ts.Re*ts.Sd) * Ug # Equivalent input signal for acoustical circuit
+    r = 1 # Distance from the speaker to the listener
+
+    #* Driver acoustical impedance
+    Zrae = (ts.Bl**2) / (ts.Re * ts.Sd**2) # Electrical DC resistance equivalent
+    Zmas = s * (ts.Mms) / (ts.Sd**2) # Mechanical impedance of the driver
+    Zcas = 1 / (s * ts.Cms * ts.Sd**2) # Compliance impedance of the driver
+    Zras = (ts.Rms) / (ts.Sd**2) # Mechanical impedance of the driver
+    
+    #* Front acoustical load impedance
+    Vbf = bandpass.front_cabinet.volume * 1e-3 # Volume of the front chamber in m^3
+    Caf = Vbf / (rho * c**2) # Compliance of the front chamber
+    Zcaf = 1 / (s * Caf) # Acoustical impedance of the front chamber
+    slave = bandpass.front_slave
+    Zslave = slave.Ras + s * slave.Mas + 1 / (s * slave.Cas) # Acoustical impedance of the slave
+
+    Zaf = (Zcaf * Zslave) / (Zcaf + Zslave) # Total acoustical impedance of the front chamber
+
+    #* Rear acoustical load impedance
+    Vbr = bandpass.back_cabinet.volume * 1e-3 # Volume of the rear chamber in m^3
+    Car = Vbr / (rho * c**2) # Compliance of the rear chamber
+    Zcar = 1 / (s * Car) # Acoustical impedance of the rear chamber
+    Spr = np.pi * (bandpass.back_ports.radius*1e-2)**2 # Area of the rear ports
+    Lpr = bandpass.back_ports.length*1e-2 # Length of the rear ports
+    Mapr = rho/Spr * (Lpr + 1.5 * np.sqrt(Spr / np.pi)) # Added mass of air due to the rear ports
+    Zmar = 1/2 * s * Mapr # Mechanical impedance of the rear ports
+    
+    Zab = (Zcar * Zmar) / (Zcar + Zmar) # Total acoustical impedance of the back chamber
+
+    #* Air flow through circuit
+    q = (Ug_eq)/(Zrae + Zmas + Zcas + Zras + Zaf + Zab)
+
+    #* Sound pressure level
+    p_factor = s*rho/(2 * np.pi * r)
+    # current divider between Zcaf and Zslave - only current in Zmaf is converted to sound pressure
+    pf = p_factor * q * Zcaf / (Zcaf + Zslave)
     # current divider between Zcar and Zmar - only current in Zmar is converted to sound pressure
     pr = p_factor * (-q) * Zcar / (Zcar + Zmar)
 
