@@ -27,6 +27,7 @@ class TsParams:
     Sd: float # Membrane area
 
 
+
 @dataclass
 class SpeakerUnit:
     params: TsParams
@@ -62,10 +63,11 @@ class Port:
 
 @dataclass
 class PassiveUnit:
-    Cas: float
-    Mas: float
-    Ras: float
-    Sd: float
+    Cmp: float
+    Mmp: float
+    Rmp: float
+    Sp: float
+
 
 @dataclass
 class BassReflex(SpeakerType):
@@ -104,7 +106,7 @@ class PassiveSlave(SpeakerType):
     def __init__(self, unit: SpeakerUnit):
         self.unit = unit
         self.cabinet = Cabinet(8)
-        self.slave = PassiveUnit(self.unit.params.Cms, self.unit.params.Mms, self.unit.params.Rms)
+        self.slave = PassiveUnit(self.unit.params.Cms, self.unit.params.Mms, self.unit.params.Rms, self.unit.params.Sd)
 
     def __str__(self) -> str:
         return "Passive Slave"
@@ -436,7 +438,8 @@ def simulate_our_speaker(bandpass: Bandpass6thOrderOur, frequency_range=(10, 100
     return f, splT, splF, splR
 
 
-def passiveradiator_6thorderbandpass_simulation(bandpass: Bandpass6thOrderPassiveSlave, frequency_range=(10, 1000)):
+
+def passiveradiator_6thorderbandpass_simulation(slave: PassiveUnit, bandpass, frequency_range=(10, 1000)):
     rho = 1.18  # Air mass density (kg/m^3)
     c = 343  # Speed of sound (m/s)
     pREF = 20e-6  # Reference sound pressure (Pa)
@@ -445,52 +448,75 @@ def passiveradiator_6thorderbandpass_simulation(bandpass: Bandpass6thOrderPassiv
     s = 1j * 2 * np.pi * f
 
     ts = bandpass.unit.params
-    print(ts)
 
-    Ug = 1 # Amplitude of the input signal
-    Ug_eq = (ts.Bl)/(ts.Re*ts.Sd) * Ug # Equivalent input signal for acoustical circuit
-    r = 1 # Distance from the speaker to the listener
+    Ug = 1  # Amplitude of the input signal
+    Ug_eq = (ts.Bl) / (ts.Re * ts.Sd) * Ug  # Equivalent input signal for acoustical circuit
+    r = 1  # Distance from the speaker to the listener
 
     #* Driver acoustical impedance
-    Zrae = (ts.Bl**2) / (ts.Re * ts.Sd**2) # Electrical DC resistance equivalent
-    Zmas = s * (ts.Mms) / (ts.Sd**2) # Mechanical impedance of the driver
-    Zcas = 1 / (s * ts.Cms * ts.Sd**2) # Compliance impedance of the driver
-    Zras = (ts.Rms) / (ts.Sd**2) # Mechanical impedance of the driver
+    Zrae = (ts.Bl ** 2) / (ts.Re * ts.Sd ** 2)  # Electrical DC resistance equivalent
+    Zmas = s * (ts.Mms) / (ts.Sd ** 2)  # Mechanical impedance of the driver
+    Zcas = 1 / (s * ts.Cms * ts.Sd ** 2)  # Compliance impedance of the driver
+    Zras = (ts.Rms) / (ts.Sd ** 2)  # Mechanical impedance of the driver
+
+    #* Front acoustical load impedance with passive radiator
+    Vbf = bandpass.front_cabinet.volume * 1e-3  # Volume of the front chamber in m^3
+    Caf = Vbf / (rho * c ** 2)  # Compliance of the front chamber
+    Zcaf = 1 / (s * Caf)  # Acoustical impedance of the front chamber
+
+    # Passive radiator parameters
+    Mmp = slave.Mmp # Mass of the passive radiator
+    Cmp = slave.Cmp  # Compliance of the passive radiator
+    Rmp = slave.Rmp  # Mechanical resistance of the passive radiator
+    Sp = slave.Sp  # Surface area of the passive radiator
+
+    Zmpr = s * Mmp/Sp**2  # Mechanical impedance of the passive radiator mass
+    Zcpr = 1 / (s * Cmp * Sp**2 )  # Compliance impedance of the passive radiator
+    Zrpr = Rmp/Sp**2  # Mechanical resistance of the passive radiator
+
+    # Total passive radiator impedance
+    Zpr = Zmpr + Zcpr + Zrpr
+
+    # Total front acoustical impedance
+    #Zaf = (Zcaf * Zpr) / (Zcaf + Zpr)
+
+    Zaf = Zrae + Zmas + Zcas + Zras + 1/(s * Caf + 1/Zpr)
     
-    #* Front acoustical load impedance
-    Vbf = bandpass.front_cabinet.volume * 1e-3 # Volume of the front chamber in m^3
-    Caf = Vbf / (rho * c**2) # Compliance of the front chamber
-    Zcaf = 1 / (s * Caf) # Acoustical impedance of the front chamber
-    slave = bandpass.front_slave
-    Zslave = slave.Ras + s * slave.Mas + 1 / (s * slave.Cas) # Acoustical impedance of the slave
-
-    Zaf = (Zcaf * Zslave) / (Zcaf + Zslave) # Total acoustical impedance of the front chamber
-
     #* Rear acoustical load impedance
-    Vbr = bandpass.back_cabinet.volume * 1e-3 # Volume of the rear chamber in m^3
-    Car = Vbr / (rho * c**2) # Compliance of the rear chamber
-    Zcar = 1 / (s * Car) # Acoustical impedance of the rear chamber
-    Spr = np.pi * (bandpass.back_ports.radius*1e-2)**2 # Area of the rear ports
-    Lpr = bandpass.back_ports.length*1e-2 # Length of the rear ports
-    Mapr = rho/Spr * (Lpr + 1.5 * np.sqrt(Spr / np.pi)) # Added mass of air due to the rear ports
-    Zmar = 1/2 * s * Mapr # Mechanical impedance of the rear ports
-    
-    Zab = (Zcar * Zmar) / (Zcar + Zmar) # Total acoustical impedance of the back chamber
+    Vbr = bandpass.back_cabinet.volume * 1e-3  # Volume of the rear chamber in m^3
+    Car = Vbr / (rho * c ** 2)  # Compliance of the rear chamber
+    Zcar = 1 / (s * Car)  # Acoustical impedance of the rear chamber
+    Spr = np.pi * (bandpass.back_ports.radius * 1e-2) ** 2  # Area of the rear ports
+    Lpr = bandpass.back_ports.length * 1e-2  # Length of the rear ports
+    Mapr = rho / Spr * (Lpr + 1.5 * np.sqrt(Spr / np.pi))  # Added mass of air due to the rear ports
+    Zmar = 1 / 2 * s * Mapr  # Mechanical impedance of the rear ports
+
+    Zab = (Zcar * Zmar) / (Zcar + Zmar)  # Total acoustical impedance of the back chamber
 
     #* Air flow through circuit
-    q = (Ug_eq)/(Zrae + Zmas + Zcas + Zras + Zaf + Zab)
+    q = Ug_eq / (Zrae + Zmas + Zcas + Zras + Zaf + Zab)
 
     #* Sound pressure level
-    p_factor = s*rho/(2 * np.pi * r)
-    # current divider between Zcaf and Zslave - only current in Zmaf is converted to sound pressure
-    pf = p_factor * q * Zcaf / (Zcaf + Zslave)
-    # current divider between Zcar and Zmar - only current in Zmar is converted to sound pressure
-    pr = p_factor * (-q) * Zcar / (Zcar + Zmar)
+
+    p_factor = s * rho / (2 * np.pi * r)
+    
+    # Current divider between Zcaf and Zpr - only current in Zpr is converted to sound pressure
+    
+    pf = p_factor * q * Zcaf / (Zcaf + Zpr) #  front chamber sound pressure
+    
+    # Current divider between Zcar and Zmar - only current in Zmar is converted to sound pressure
+    
+    pr = p_factor * (-q) * Zcar / (Zcar + Zmar) # Rear chamber sound pressure
+    
 
     p_total = pf + pr
 
-    splF = 20 * np.log10(np.abs(pf) / pREF)
-    splR = 20 * np.log10(np.abs(pr) / pREF)
-    splT = 20 * np.log10(np.abs(p_total) / pREF)
+    splF = 20 * np.log10(np.abs(pf) / pREF) # Front chamber sound pressure level
+    splR = 20 * np.log10(np.abs(pr) / pREF) # passive radiator sound pressure level
+    splT = 20 * np.log10(np.abs(p_total) / pREF) # total sound pressure level
 
-    return f, splT, splF, splR
+    return f, splT, splR, splF
+
+
+
+
