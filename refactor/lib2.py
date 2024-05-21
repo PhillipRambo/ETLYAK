@@ -62,10 +62,10 @@ class Port:
 
 @dataclass
 class PassiveUnit:
-    Cas: float
-    Mas: float
-    Ras: float
-    Sd: float
+    Cmp: float
+    Mmp: float
+    Rmp: float
+    Sp: float
 
 @dataclass
 class BassReflex(SpeakerType):
@@ -101,10 +101,10 @@ class PassiveSlave(SpeakerType):
     slave: PassiveUnit
     cabinet: Cabinet
 
-    def __init__(self, unit: SpeakerUnit):
+    def __init__(self, unit: SpeakerUnit, slave: PassiveUnit):
         self.unit = unit
+        self.slave = slave
         self.cabinet = Cabinet(8)
-        self.slave = PassiveUnit(self.unit.params.Cms, self.unit.params.Mms, self.unit.params.Rms)
 
     def __str__(self) -> str:
         return "Passive Slave"
@@ -289,7 +289,10 @@ def simulate_passive_slave(passive_slave: PassiveSlave, frequency_range=(10, 100
     Vbr = passive_slave.cabinet.volume * 1e-3 # Volume of the rear chamber in m^3
     Car = Vbr / (rho * c**2) # Compliance of the rear chamber
     Zcar = 1 / (s * Car) # Acoustical impedance of the rear chamber
-    Zslave = passive_slave.slave.Ras + s * passive_slave.slave.Mas + 1 / (s * passive_slave.slave.Cas) # Acoustical impedance of the slave
+    Map = passive_slave.slave.Mmp / passive_slave.slave.Sp**2 # Added mass of air due to the front port
+    Cap = passive_slave.slave.Cmp * passive_slave.slave.Sp**2 # Compliance of the passive radiator
+    Rap = passive_slave.slave.Rmp / passive_slave.slave.Sp**2 # Mechanical impedance of the passive radiator
+    Zslave = Rap + s * Map + 1 / (s * Cap) # Acoustical impedance of the slave
 
     Zab = (Zcar * Zslave) / (Zcar + Zslave) # Total acoustical impedance of the back chamber
 
@@ -445,7 +448,6 @@ def passiveradiator_6thorderbandpass_simulation(bandpass: Bandpass6thOrderPassiv
     s = 1j * 2 * np.pi * f
 
     ts = bandpass.unit.params
-    print(ts)
 
     Ug = 1 # Amplitude of the input signal
     Ug_eq = (ts.Bl)/(ts.Re*ts.Sd) * Ug # Equivalent input signal for acoustical circuit
@@ -461,8 +463,10 @@ def passiveradiator_6thorderbandpass_simulation(bandpass: Bandpass6thOrderPassiv
     Vbf = bandpass.front_cabinet.volume * 1e-3 # Volume of the front chamber in m^3
     Caf = Vbf / (rho * c**2) # Compliance of the front chamber
     Zcaf = 1 / (s * Caf) # Acoustical impedance of the front chamber
-    slave = bandpass.front_slave
-    Zslave = slave.Ras + s * slave.Mas + 1 / (s * slave.Cas) # Acoustical impedance of the slave
+    Map = bandpass.front_slave.Mmp / bandpass.front_slave.Sp**2 # Added mass of air due to the front port
+    Cap = bandpass.front_slave.Cmp * bandpass.front_slave.Sp**2 # Compliance of the passive radiator
+    Rap = bandpass.front_slave.Rmp / bandpass.front_slave.Sp**2 # Mechanical impedance of the passive radiator
+    Zslave = Rap + s * Map + 1 / (s * Cap) # Acoustical impedance of the slave
 
     Zaf = (Zcaf * Zslave) / (Zcaf + Zslave) # Total acoustical impedance of the front chamber
 
@@ -494,3 +498,4 @@ def passiveradiator_6thorderbandpass_simulation(bandpass: Bandpass6thOrderPassiv
     splT = 20 * np.log10(np.abs(p_total) / pREF)
 
     return f, splT, splF, splR
+

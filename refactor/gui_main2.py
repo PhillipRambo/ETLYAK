@@ -1,3 +1,4 @@
+from copy import deepcopy
 import tkinter as tk
 from tkinter import ttk
 from matplotlib.figure import Figure
@@ -5,7 +6,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from lib2 import unit_from_blue_planet_parameters, SpeakerType, BassReflex, BassReflexNotOurs, Cabinet, Port, PassiveUnit, PassiveSlave, SimulationType, Bandpass6thOrder, Bandpass6thOrderOur, Bandpass6thOrderPassiveSlave, simulate_6thorderbandpass, simulate_passive_slave, simulate_bass_reflex, simulate_our_speaker, simulate_bass_reflex_not_ours, passiveradiator_6thorderbandpass_simulation
 
 UNIT = unit_from_blue_planet_parameters(impedance=4, xmax=8, fres=45, bl=8.7, Le=1.18e-3, Re=3.5, Qms=4.37, Qes=0.49, Qts=0.44, Vas=6.8, Sd=127e-4, Mms=38.64e-3, Cms=0.3e-3, Rms=2.57)
-SLAVE = PassiveUnit(Cas=UNIT.params.Cms, Mas=15.4e-3, Ras=UNIT.params.Rms, Sd=136e-4)
+SLAVE = PassiveUnit(Cmp=UNIT.params.Cms, Mmp=15.4e-3, Rmp=UNIT.params.Rms, Sp=136e-4)
 
 speaker = BassReflex(UNIT, Cabinet(8), Port(2, 10))
 
@@ -59,17 +60,17 @@ def update_inputs(frame, sim_type, ax, canvas):
     global speaker
     if str(speaker) != sim_type:
         if sim_type == 'Bass Reflex':
-            speaker = BassReflex(UNIT)
+            speaker = BassReflex(deepcopy(UNIT))
         elif sim_type == 'Bass Reflex not ours':
-            speaker = BassReflexNotOurs(UNIT)
+            speaker = BassReflexNotOurs(deepcopy(UNIT))
         elif sim_type == 'Passive Slave':
-            speaker = PassiveSlave(UNIT, SLAVE)
+            speaker = PassiveSlave(deepcopy(UNIT), deepcopy(SLAVE))
         elif sim_type == '6th Order Bandpass':
-            speaker = Bandpass6thOrder(UNIT)
+            speaker = Bandpass6thOrder(deepcopy(UNIT))
         elif sim_type == 'Our speaker':
-            speaker = Bandpass6thOrderOur(UNIT)
+            speaker = Bandpass6thOrderOur(deepcopy(UNIT))
         elif sim_type == 'Our speaker Passive Slave':
-            speaker = Bandpass6thOrderPassiveSlave(UNIT, SLAVE)
+            speaker = Bandpass6thOrderPassiveSlave(deepcopy(UNIT), deepcopy(SLAVE))
 
     for widget in frame.winfo_children():
         widget.destroy()
@@ -77,7 +78,7 @@ def update_inputs(frame, sim_type, ax, canvas):
     input_fields = {
         'Bass Reflex': ["Cabinet Volume (L):", "Port Radius (cm):", "Port length (cm):"],
         'Bass Reflex not ours': ["Cabinet Volume (L):", "Port Radius (cm):", "Port length (cm):"],
-        'Passive Slave': ["Cabinet Volume (L):", "Passive Radiator Compliance (mm/N):", "Passive Radiator Mass (g):", "Passive Radiator Resistance (Ohm):"],
+        'Passive Slave': ["Cabinet Volume (L):"],
         '6th Order Bandpass': ["Cabinet volume front chamber (L):", "Cabinet volume rear chamber (L):", "Port radius front chamber (cm):", "Port length front chamber (cm):", "Port radius rear chamber (cm):", "Port length rear chamber (cm):"],
         'Our speaker': ["Cabinet volume front chamber (L):", "Cabinet volume rear chamber (L):", "Port radius front chamber (cm):", "Port length front chamber (cm):", "Port radius rear chamber (cm):", "Port length rear chamber (cm):"],
         'Our speaker Passive Slave': ["Cabinet volume front chamber (L):", "Cabinet volume rear chamber (L):", "Port radius rear chamber (cm):", "Port length rear chamber (cm):"]
@@ -99,9 +100,6 @@ def update_inputs(frame, sim_type, ax, canvas):
         sliders[labels[2]].set(speaker.port.length)
     elif sim_type == 'Passive Slave':
         sliders[labels[0]].set(speaker.cabinet.volume)
-        sliders[labels[1]].set(speaker.slave.Cas)
-        sliders[labels[2]].set(speaker.slave.Mas)
-        sliders[labels[3]].set(speaker.slave.Ras)
     elif sim_type == '6th Order Bandpass' or sim_type == 'Our speaker':
         sliders[labels[0]].set(speaker.front_cabinet.volume)
         sliders[labels[1]].set(speaker.back_cabinet.volume)
@@ -114,6 +112,7 @@ def update_inputs(frame, sim_type, ax, canvas):
         sliders[labels[1]].set(speaker.back_cabinet.volume)
         sliders[labels[2]].set(speaker.back_ports.radius)
         sliders[labels[3]].set(speaker.back_ports.length)
+        
 
 def submit(frame, ax, canvas):
     global speaker
@@ -137,7 +136,7 @@ def submit(frame, ax, canvas):
             ax.semilogx(f, splR)
             ax.semilogx(f, splT)
             ax.grid(which='both', axis='both')
-            ax.legend(['Front Chamber', 'Rear Chamber', 'Total'])
+            ax.legend(['Front Pressure', 'Rear Pressure', 'Total'])
             ax.set_xlim([f[0], f[-1]])
             ax.set_title('Bass Reflex Simulation')
             ax.set_xlabel('Frequency (Hz)')
@@ -157,7 +156,7 @@ def submit(frame, ax, canvas):
             ax.semilogx(f, splR)
             ax.semilogx(f, splT)
             ax.grid(which='both', axis='both')
-            ax.legend(['Front Chamber', 'Rear Chamber', 'Total'])
+            ax.legend(['Front Pressure', 'Rear Pressure', 'Total'])
             ax.set_xlim([f[0], f[-1]])
             ax.set_title('Bass Reflex Simulation')
             ax.set_xlabel('Frequency (Hz)')
@@ -167,9 +166,6 @@ def submit(frame, ax, canvas):
         elif str(speaker) == 'Passive Slave':
             # Update Values
             speaker.cabinet.volume = values["Cabinet Volume (L):"]
-            speaker.slave.Cas = values["Passive Radiator Compliance (mm/N):"]
-            speaker.slave.Mas = values["Passive Radiator Mass (g):"]
-            speaker.slave.Ras = values["Passive Radiator Resistance (Ohm):"]
 
             # Plot
             f, splT, splF, splR = simulate_passive_slave(speaker)
@@ -178,7 +174,7 @@ def submit(frame, ax, canvas):
             ax.semilogx(f, splR)
             ax.semilogx(f, splT)
             ax.grid(which='both', axis='both')
-            ax.legend(['Front Chamber', 'Rear Chamber', 'Total'])
+            ax.legend(['Front Pressure', 'Rear Pressure', 'Total'])
             ax.set_xlim([f[0], f[-1]])
             ax.set_title('Passive Slave Simulation')
             ax.set_xlabel('Frequency (Hz)')
@@ -201,7 +197,7 @@ def submit(frame, ax, canvas):
             ax.semilogx(f, splR)
             ax.semilogx(f, splT)
             ax.grid(which='both', axis='both')
-            ax.legend(['Front Chamber', 'Rear Chamber', 'Total'])
+            ax.legend(['Front Pressure', 'Rear Pressure', 'Total'])
             ax.set_xlim([f[0], f[-1]])
             ax.set_title('6th Order Bandpass Simulation')
             ax.set_xlabel('Frequency (Hz)')
@@ -225,7 +221,7 @@ def submit(frame, ax, canvas):
             ax.semilogx(f, splR)
             ax.semilogx(f, splT)
             ax.grid(which='both', axis='both')
-            ax.legend(['Front Chamber', 'Rear Chamber', 'Total'])
+            ax.legend(['Front Pressure', 'Rear Pressure', 'Total'])
             ax.set_xlim([f[0], f[-1]])
             ax.set_title('6th Order Bandpass Simulation')
             ax.set_xlabel('Frequency (Hz)')
@@ -246,7 +242,7 @@ def submit(frame, ax, canvas):
             ax.semilogx(f, splR)
             ax.semilogx(f, splT)
             ax.grid(which='both', axis='both')
-            ax.legend(['Front Chamber', 'Rear Chamber', 'Total'])
+            ax.legend(['Front Pressure', 'Rear Pressure', 'Total'])
             ax.set_xlim([f[0], f[-1]])
             ax.set_title('6th Order Bandpass Simulation')
             ax.set_xlabel('Frequency (Hz)')
