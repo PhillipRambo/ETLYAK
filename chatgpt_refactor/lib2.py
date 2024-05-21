@@ -480,7 +480,7 @@ def passiveradiator_6thorderbandpass_simulation(slave: PassiveUnit, bandpass, fr
     # Total front acoustical impedance
     #Zaf = (Zcaf * Zpr) / (Zcaf + Zpr)
 
-    Zaf = Zrae + Zmas + Zcas + Zras + 1/(s * Caf + 1/Zpr)
+    Zaf = Zrae + Zmas + Zcas + Zras + 1/(s * Caf + 1/Zpr) 
     
     #* Rear acoustical load impedance
     Vbr = bandpass.back_cabinet.volume * 1e-3  # Volume of the rear chamber in m^3
@@ -494,7 +494,7 @@ def passiveradiator_6thorderbandpass_simulation(slave: PassiveUnit, bandpass, fr
     Zab = (Zcar * Zmar) / (Zcar + Zmar)  # Total acoustical impedance of the back chamber
 
     #* Air flow through circuit
-    q = Ug_eq / (Zrae + Zmas + Zcas + Zras + Zaf + Zab)
+    q = Ug_eq / (Zaf + Zab)
 
     #* Sound pressure level
 
@@ -508,6 +508,7 @@ def passiveradiator_6thorderbandpass_simulation(slave: PassiveUnit, bandpass, fr
     
     pr = p_factor * (-q) * Zcar / (Zcar + Zmar) # Rear chamber sound pressure
     
+
 
     p_total = pf + pr
 

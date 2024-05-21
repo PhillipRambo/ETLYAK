@@ -12,7 +12,7 @@ from lib2 import (unit_from_blue_planet_parameters, SpeakerType, BassReflex, Bas
 UNIT = unit_from_blue_planet_parameters(impedance=4, xmax=8, fres=45, bl=8.7, Le=1.18e-3, Re=3.5,
                                         Qms=4.37, Qes=0.49, Qts=0.44, Vas=6.8, Sd=127e-4,
                                         Mms=38.64e-3, Cms=0.3e-3, Rms=2.57)
-SLAVE = PassiveUnit(Cmp=UNIT.params.Cms, Mmp=38.64e-3, Rmp=UNIT.params.Rms, Sp=136e-4)
+SLAVE = PassiveUnit(Cmp=UNIT.params.Cms, Mmp=10e-3, Rmp=UNIT.params.Rms, Sp=136e-4)
 speaker = BassReflex(UNIT, Cabinet(8), Port(2, 10))
 
 def setup_gui():
