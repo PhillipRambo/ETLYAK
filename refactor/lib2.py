@@ -415,7 +415,7 @@ def simulate_our_speaker(bandpass: Bandpass6thOrderOur, frequency_range=(10, 100
     Zcar = 1 / (s * Car) # Acoustical impedance of the rear chamber
     Spr = np.pi * (bandpass.back_ports.radius*1e-2)**2 # Area of the rear ports
     Lpr = bandpass.back_ports.length*1e-2 # Length of the rear ports
-    Mapr = rho/Spr * (Lpr + 1.5 * np.sqrt(Spr / np.pi)) # Added mass of air due to the rear ports
+    Mapr = 2 * rho/Spr * (Lpr + 1.5 * np.sqrt(Spr / np.pi)) # Added mass of air due to the rear ports
     Zmar = 1/2 * s * Mapr # Mechanical impedance of the rear ports
     
     Zab = (Zcar * Zmar) / (Zcar + Zmar) # Total acoustical impedance of the back chamber
@@ -476,7 +476,7 @@ def passiveradiator_6thorderbandpass_simulation(bandpass: Bandpass6thOrderPassiv
     Zcar = 1 / (s * Car) # Acoustical impedance of the rear chamber
     Spr = np.pi * (bandpass.back_ports.radius*1e-2)**2 # Area of the rear ports
     Lpr = bandpass.back_ports.length*1e-2 # Length of the rear ports
-    Mapr = rho/Spr * (Lpr + 1.5 * np.sqrt(Spr / np.pi)) # Added mass of air due to the rear ports
+    Mapr = 2 * rho/Spr * (Lpr + 1.5 * np.sqrt(Spr / np.pi)) # Added mass of air due to the rear ports
     Zmar = 1/2 * s * Mapr # Mechanical impedance of the rear ports
     
     Zab = (Zcar * Zmar) / (Zcar + Zmar) # Total acoustical impedance of the back chamber
